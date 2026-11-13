@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>SACAB TV – Admin</title>
+  <link rel="icon" href="../assets/logo.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/app.css">
+  <link rel="stylesheet" href="admin.css">
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+</head>
+<body class="admin-body">
+  <div id="adminLogin" class="auth-screen">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <img src="../assets/logo.png" alt="SACAB TV">
+        <h1>Admin <span>Panel</span></h1>
+      </div>
+      <p style="text-align:center;color:#a0a0a0;margin-bottom:20px;font-size:0.9rem;">Sign in with your admin account</p>
+      <form id="adminLoginForm">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="adminEmail" required>
+        </div>
+        <div class="form-group">
+          <label>Password</label>
+          <input type="password" id="adminPassword" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+        <p class="form-error" id="adminLoginError"></p>
+      </form>
+      <p style="text-align:center;margin-top:16px;"><a href="../" style="color:#F2C900;">← Back to App</a></p>
+    </div>
+  </div>
+
+  <div id="adminApp" style="display:none;">
+    <aside class="admin-sidebar">
+      <div class="sidebar-brand">
+        <img src="../assets/logo.png" alt="" style="width:36px;height:36px;border-radius:8px;">
+        <span>SACAB Admin</span>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="side-item active" data-sec="overview">Overview</button>
+        <button class="side-item" data-sec="content">Content</button>
+        <button class="side-item" data-sec="users">Users</button>
+        <button class="side-item" data-sec="ads">Advertisements</button>
+        <button class="side-item" data-sec="settings">App Settings</button>
+        <button class="side-item" data-sec="editors">Editors</button>
+      </nav>
+      <div class="sidebar-foot">
+        <a href="../" class="btn btn-outline" style="width:100%;padding:10px;font-size:0.85rem;">View App</a>
+        <button id="adminLogout" class="btn" style="width:100%;margin-top:8px;padding:10px;color:#ff8a8a;border:1px solid rgba(255,100,100,0.3);border-radius:8px;">Logout</button>
+      </div>
+    </aside>
+
+    <main class="admin-main">
+      <header class="admin-header">
+        <h2 id="secTitle">Overview</h2>
+        <span id="adminRoleBadge" class="badge">Admin</span>
+      </header>
+
+      <!-- OVERVIEW -->
+      <section class="admin-sec active" id="sec-overview">
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card"><div class="stat-num" id="statUsers">–</div><div class="stat-label">Users</div></div>
+          <div class="stat-card"><div class="stat-num" id="statContent">–</div><div class="stat-label">Content</div></div>
+          <div class="stat-card"><div class="stat-num" id="statMovies">–</div><div class="stat-label">Movies</div></div>
+          <div class="stat-card"><div class="stat-num" id="statSeries">–</div><div class="stat-label">Series/Anime</div></div>
+        </div>
+      </section>
+
+      <!-- CONTENT -->
+      <section class="admin-sec" id="sec-content">
+        <div class="toolbar">
+          <button class="btn btn-primary" id="btnAddContent">+ Add Content</button>
+        </div>
+        <div id="contentList" class="data-table"></div>
+
+        <!-- Add/Edit Modal -->
+        <div class="modal" id="contentModal" style="display:none;">
+          <div class="modal-card">
+            <h3 id="contentModalTitle">Add Content</h3>
+            <form id="contentForm">
+              <input type="hidden" id="contentId">
+              <div class="form-row">
+                <div class="form-group"><label>Title *</label><input id="cTitle" required></div>
+                <div class="form-group"><label>Type *</label>
+                  <select id="cType" required>
+                    <option value="movie">Movie</option>
+                    <option value="anime">Anime</option>
+                    <option value="kdrama">K-Drama</option>
+                    <option value="series">Series</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group"><label>Description</label><textarea id="cDesc" rows="3"></textarea></div>
+              <div class="form-row">
+                <div class="form-group"><label>Year</label><input id="cYear" type="number" min="1900" max="2030"></div>
+                <div class="form-group"><label>Rating</label><input id="cRating" type="number" min="0" max="10" step="0.1"></div>
+                <div class="form-group"><label>Genre</label><input id="cGenre" placeholder="Action, Drama"></div>
+              </div>
+              <div class="form-group"><label>Poster Image URL</label><input id="cPoster" placeholder="https://..."></div>
+              <div class="form-group"><label>Banner Image URL</label><input id="cBanner" placeholder="https://..."></div>
+              <div class="form-group"><label>Video URL (MP4 / HLS / Direct)</label><input id="cVideo" placeholder="https://...mp4 or m3u8"></div>
+              <div class="form-row">
+                <label class="check-label"><input type="checkbox" id="cFeatured"> Featured</label>
+                <label class="check-label"><input type="checkbox" id="cTrending"> Trending</label>
+              </div>
+              <div class="form-group"><label>Episodes (JSON array, optional)</label>
+                <textarea id="cEpisodes" rows="4" placeholder='[{"title":"Ep 1","videoUrl":"https://...","thumbnail":""}]'></textarea>
+                <small style="color:#6b6b6b;">For series/anime/kdrama – array of episodes with title, videoUrl, thumbnail</small>
+              </div>
+              <div style="display:flex;gap:10px;margin-top:16px;">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <button type="button" class="btn btn-outline" id="contentModalClose">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- USERS -->
+      <section class="admin-sec" id="sec-users">
+        <div id="usersList" class="data-table"></div>
+      </section>
+
+      <!-- ADS – Advertisement Management -->
+      <section class="admin-sec" id="sec-ads">
+        <p class="sec-desc">Manage ad placements across the app. Support image banners, custom HTML, AdSense, Adsterra and other networks.</p>
+
+        <div class="card">
+          <h3>Ad Network Settings</h3>
+          <div class="form-group">
+            <label>Primary Ad Network</label>
+            <select id="adNetwork">
+              <option value="none">None</option>
+              <option value="adsense">Google AdSense</option>
+              <option value="adsterra">Adsterra</option>
+              <option value="custom">Custom / Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Publisher / Site ID</label>
+            <input id="adPublisherId" placeholder="e.g. ca-pub-xxxxxxxx or Adsterra ID">
+          </div>
+          <div class="form-group">
+            <label>Global Network Script / Code (optional)</label>
+            <textarea id="adNetworkScript" rows="4" placeholder="Paste AdSense or Adsterra script here if needed"></textarea>
+          </div>
+          <button class="btn btn-primary" id="saveNetworkBtn">Save Network Settings</button>
+        </div>
+
+        <div class="card" style="margin-top:24px;">
+          <h3>Ad Placements</h3>
+          <p style="color:#a0a0a0;font-size:0.9rem;margin-bottom:16px;">Configure each zone. Users will see these ads in the app.</p>
+
+          <div class="placement-list">
+            <!-- Home Top -->
+            <div class="placement-card">
+              <h4>Home – Top Banner</h4>
+              <label class="check-label"><input type="checkbox" id="ad_home_top_enabled"> Enabled</label>
+              <div class="form-group"><label>Type</label>
+                <select id="ad_home_top_type">
+                  <option value="image">Image Banner</option>
+                  <option value="html">Custom HTML</option>
+                  <option value="network">Network Code (AdSense/Adsterra)</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Image URL</label><input id="ad_home_top_image" placeholder="https://..."></div>
+              <div class="form-group"><label>Click Link URL</label><input id="ad_home_top_link" placeholder="https://..."></div>
+              <div class="form-group"><label>HTML / Network Code</label><textarea id="ad_home_top_code" rows="3"></textarea></div>
+            </div>
+
+            <!-- Home Mid -->
+            <div class="placement-card">
+              <h4>Home – Middle</h4>
+              <label class="check-label"><input type="checkbox" id="ad_home_mid_enabled"> Enabled</label>
+              <div class="form-group"><label>Type</label>
+                <select id="ad_home_mid_type">
+                  <option value="image">Image Banner</option>
+                  <option value="html">Custom HTML</option>
+                  <option value="network">Network Code</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Image URL</label><input id="ad_home_mid_image"></div>
+              <div class="form-group"><label>Click Link URL</label><input id="ad_home_mid_link"></div>
+              <div class="form-group"><label>HTML / Network Code</label><textarea id="ad_home_mid_code" rows="3"></textarea></div>
+            </div>
+
+            <!-- Detail -->
+            <div class="placement-card">
+              <h4>Content Detail Page</h4>
+              <label class="check-label"><input type="checkbox" id="ad_detail_enabled"> Enabled</label>
+              <div class="form-group"><label>Type</label>
+                <select id="ad_detail_type">
+                  <option value="image">Image Banner</option>
+                  <option value="html">Custom HTML</option>
+                  <option value="network">Network Code</option>
+                </select>
+              </div>
+              <div class="form-group"><label>Image URL</label><input id="ad_detail_image"></div>
+              <div class="form-group"><label>Click Link URL</label><input id="ad_detail_link"></div>
+              <div class="form-group"><label>HTML / Network Code</label><textarea id="ad_detail_code" rows="3"></textarea></div>
+            </div>
+
+            <!-- Player Pre-roll note -->
+            <div class="placement-card">
+              <h4>Player / Pre-roll (optional link)</h4>
+              <p style="color:#6b6b6b;font-size:0.85rem;">For video pre-roll ads use VAST/VPAID from your ad network. Paste the tag URL or HTML below.</p>
+              <label class="check-label"><input type="checkbox" id="ad_player_enabled"> Enabled</label>
+              <div class="form-group"><label>VAST / Ad Tag URL or HTML</label><textarea id="ad_player_code" rows="3"></textarea></div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary" id="savePlacementsBtn" style="margin-top:16px;">Save All Placements</button>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="admin-sec" id="sec-settings">
+        <div class="card">
+          <h3>App Settings</h3>
+          <div class="form-group"><label>App Name</label><input id="setAppName" value="SACAB TV"></div>
+          <div class="form-group"><label>Announcement (shown to all users)</label><textarea id="setAnnouncement" rows="2"></textarea></div>
+          <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+        </div>
+      </section>
+
+      <!-- EDITORS -->
+      <section class="admin-sec" id="sec-editors">
+        <div class="card">
+          <h3>Manage Editors</h3>
+          <p style="color:#a0a0a0;font-size:0.9rem;margin-bottom:16px;">Only Super Admin can assign Editor roles. Enter the user's Firebase UID.</p>
+          <div class="form-group"><label>User UID</label><input id="editorUid" placeholder="Firebase UID"></div>
+          <button class="btn btn-primary" id="addEditorBtn">Grant Editor Role</button>
+          <div id="editorsList" style="margin-top:20px;"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="../js/firebase-config.js"></script>
+  <script src="admin.js"></script>
+</body>
+</html>
